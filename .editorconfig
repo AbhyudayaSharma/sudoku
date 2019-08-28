@@ -12,3 +12,9 @@ tab_width = 4
 
 [*.bat]
 end_of_line = crlf
+
+[*.properties]
+charset = latin1
+
+[*.{yml, yaml}]
+indent_size = 2
