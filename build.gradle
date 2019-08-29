@@ -1,16 +1,23 @@
 plugins {
     id 'java'
+    id 'application'
     id "com.github.spotbugs" version "2.0.0"
 }
 
 group 'com.abhyudayasharma'
 version '0.1-SNAPSHOT'
 
+final String MAIN_CLASS = 'com.abhyudayasharma.sudoku.Main'
+
 sourceCompatibility = 11
+
+application {
+    mainClassName = MAIN_CLASS
+}
 
 jar {
     manifest {
-        attributes 'Main-Class': 'com.abhyudayasharma.sudoku.Main'
+        attributes 'Main-Class': MAIN_CLASS
     }
 }
 
