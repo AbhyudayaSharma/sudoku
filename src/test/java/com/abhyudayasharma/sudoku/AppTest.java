@@ -1,4 +1,4 @@
-package com.abhyudaysharma.sudoku;
+package com.abhyudayasharma.sudoku;
 
 import org.junit.jupiter.api.Test;
 

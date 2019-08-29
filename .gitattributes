@@ -1,1 +1,2 @@
 *.bat eol=crlf
+*.csv eol=crlf # RFC4180
