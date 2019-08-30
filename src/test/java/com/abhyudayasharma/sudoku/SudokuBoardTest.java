@@ -1,14 +1,18 @@
 package com.abhyudayasharma.sudoku;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SudokuBoardTest {
     @Test
     void sizeTest() {
-        Assertions.assertEquals(9, SudokuBoard.SIZE);
+        assertEquals(9, SudokuBoard.SIZE);
+        var sqrt = Math.sqrt(SudokuBoard.SIZE);
+
+        // should be a perfect square
+        assertTrue(sqrt == Math.floor(sqrt) && !Double.isInfinite(sqrt));
     }
 
     @Test

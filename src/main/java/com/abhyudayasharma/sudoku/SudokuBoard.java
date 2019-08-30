@@ -18,8 +18,8 @@ import java.util.Optional;
  *
  * @author Abhyudaya Sharma
  */
-class SudokuBoard {
-    static final int SIZE = 9;
+public class SudokuBoard {
+    public static final int SIZE = 9;
     private static final Logger LOGGER = LoggerFactory.getLogger(SudokuBoard.class);
     private final int[][] matrix;
 
@@ -27,9 +27,23 @@ class SudokuBoard {
         this(new int[SIZE][SIZE]);
     }
 
+    /**
+     * Creates a SudokuBoard from the given matrix.
+     *
+     * @param matrix initialize the sudoku board from the given matrix
+     */
     private SudokuBoard(int[][] matrix) {
-        assert matrix.length == SIZE;
-        assert Arrays.stream(matrix).mapToInt(x -> x.length).allMatch(x -> x == SIZE);
+        var isInvalid = false;
+        if (matrix.length != SIZE) {
+            isInvalid = true;
+        }
+
+        isInvalid = isInvalid || Arrays.stream(matrix).mapToInt(row -> row.length).allMatch(length -> length == SIZE);
+
+        if (isInvalid) {
+            throw new IllegalArgumentException(String.format("The size of the matrix should be %d x %d", SIZE, SIZE));
+        }
+
         this.matrix = matrix;
     }
 
@@ -37,7 +51,8 @@ class SudokuBoard {
         if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) {
             throw new IndexOutOfBoundsException(String.format("Matrix Index (%d, %d) is out of bounds", row, col));
         }
-        int value = matrix[row][col];
+
+        var value = matrix[row][col];
         if (value == 0) {
             return Optional.empty();
         } else {
