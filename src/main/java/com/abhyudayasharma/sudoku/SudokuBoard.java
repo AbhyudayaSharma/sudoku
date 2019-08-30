@@ -38,7 +38,7 @@ public class SudokuBoard {
             isInvalid = true;
         }
 
-        isInvalid = isInvalid || Arrays.stream(matrix).mapToInt(row -> row.length).allMatch(length -> length == SIZE);
+        isInvalid = isInvalid || !Arrays.stream(matrix).mapToInt(row -> row.length).allMatch(length -> length == SIZE);
 
         if (isInvalid) {
             throw new IllegalArgumentException(String.format("The size of the matrix should be %d x %d", SIZE, SIZE));
