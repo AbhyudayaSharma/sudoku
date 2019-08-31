@@ -3,11 +3,14 @@ package com.abhyudayasharma.sudoku;
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
 import net.miginfocom.swing.MigLayout;
 
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.WindowConstants;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.Font;
 
 public class Sudoku {
@@ -52,7 +55,22 @@ public class Sudoku {
         JMenuItem saveToFile = new JMenuItem("Save...");
 
         loadFromFile.addActionListener(e -> {
-            // TODO respond to mouse click
+            JFileChooser fileChooser = new JFileChooser();
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV files", "csv");
+            fileChooser.addChoosableFileFilter(filter);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setMultiSelectionEnabled(false);
+            fileChooser.setFileFilter(filter);
+
+            int response = fileChooser.showDialog(frame, null);
+            if (response == JFileChooser.APPROVE_OPTION) {
+                try {
+                    table.load(fileChooser.getSelectedFile().toURI());
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame, "Error while trying to read the file:\n" + ex.getMessage(),
+                        "Error reading file", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         });
 
         saveToFile.addActionListener(e -> {

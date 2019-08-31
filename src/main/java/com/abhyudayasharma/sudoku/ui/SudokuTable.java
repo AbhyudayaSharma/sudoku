@@ -8,14 +8,13 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.Color;
-
-import static com.abhyudayasharma.sudoku.SudokuBoard.SIZE;
+import java.net.URI;
 
 public class SudokuTable extends JTable {
     private static final int CELL_SIZE = 50;
 
     public SudokuTable() {
-        super(SIZE, SIZE);
+        super(new SudokuTableModel());
         cellSelectionEnabled = rowSelectionAllowed = false;
         selectionModel.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         showVerticalLines = true;
@@ -24,16 +23,30 @@ public class SudokuTable extends JTable {
         rowHeight = 50;
         tableHeader = null;
 
-        for (var it = columnModel.getColumns().asIterator(); it.hasNext(); ) {
-            var column = it.next();
-            column.setPreferredWidth(CELL_SIZE);
-            column.setCellEditor(new SudokuCellEditor());
-        }
-
+        setColumnCellEditors();
         var centeredRenderer = new DefaultTableCellRenderer();
         centeredRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         setDefaultRenderer(Object.class, centeredRenderer);
         setFont(Sudoku.BOARD_FONT);
         setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, false));
+    }
+
+    private void setColumnCellEditors() {
+        for (var it = columnModel.getColumns().asIterator(); it.hasNext(); ) {
+            var column = it.next();
+            column.setPreferredWidth(CELL_SIZE);
+            column.setCellEditor(new SudokuCellEditor());
+        }
+    }
+
+    /**
+     * Load the table from a CSV file
+     *
+     * @param uri uri to a CSV fil
+     * @throws Exception if unable to load the file
+     */
+    public void load(URI uri) throws Exception {
+        setModel(new SudokuTableModel(uri));
+        setColumnCellEditors();
     }
 }

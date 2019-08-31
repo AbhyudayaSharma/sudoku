@@ -9,9 +9,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A 9x9 matrix that can be used as a Sudoku board.
@@ -47,7 +49,7 @@ public class SudokuBoard {
         this.matrix = matrix;
     }
 
-    Optional<Integer> get(int row, int col) {
+    public Optional<Integer> get(int row, int col) {
         if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) {
             throw new IndexOutOfBoundsException(String.format("Matrix Index (%d, %d) is out of bounds", row, col));
         }
@@ -68,7 +70,7 @@ public class SudokuBoard {
      * @throws IOException              if an I/O error takes place when trying to read the file
      * @throws IllegalArgumentException if any entry of the CSV is not a positive integer
      */
-    static SudokuBoard load(URI uri) throws IOException {
+    public static SudokuBoard load(URI uri) throws IOException {
         var parser = CSVParser.parse(uri.toURL(), StandardCharsets.UTF_8, CSVFormat.RFC4180);
         int[][] matrix = new int[SIZE][SIZE];
 
@@ -113,5 +115,20 @@ public class SudokuBoard {
         }
 
         return new SudokuBoard(matrix);
+    }
+
+    /**
+     * Return the sudoku as a list of list of strings.
+     * <p>
+     * The returned list is modifiable and a new list is generated on every call.
+     *
+     * @return the sudoku as a list of list of strings
+     */
+    public List<List<String>> asList() {
+        var ret = new ArrayList<List<String>>();
+        for (int[] ints : matrix) {
+            ret.add(Arrays.stream(ints).mapToObj(String::valueOf).collect(Collectors.toList()));
+        }
+        return ret;
     }
 }
