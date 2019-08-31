@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -94,7 +95,8 @@ public class SudokuTableModel implements TableModel {
         if (!FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("csv")) {
             file = new File(file.toString() + ".csv");
         }
-        try (CSVPrinter printer = new CSVPrinter(new BufferedWriter(new FileWriter(file)), CSVFormat.RFC4180)) {
+        try (CSVPrinter printer = new CSVPrinter(new BufferedWriter(new FileWriter(
+            file, StandardCharsets.UTF_8)), CSVFormat.RFC4180)) {
             printer.printRecords(data);
         }
     }
