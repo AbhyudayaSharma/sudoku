@@ -1,6 +1,7 @@
 package com.abhyudayasharma.sudoku;
 
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
+import com.abhyudayasharma.sudoku.ui.SudokuTableModel;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.JFileChooser;
@@ -11,7 +12,9 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.TableModel;
 import java.awt.Font;
+import java.io.IOException;
 
 public class Sudoku {
     /**
@@ -46,23 +49,23 @@ public class Sudoku {
      * @return a new {@link JMenuBar} object.
      */
     private JMenuBar createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
+        var menuBar = new JMenuBar();
 
-        JMenu fileMenu = new JMenu("File");
+        var fileMenu = new JMenu("File");
         fileMenu.setMnemonic('F');
 
-        JMenuItem loadFromFile = new JMenuItem("Load...");
-        JMenuItem saveToFile = new JMenuItem("Save...");
+        var loadFromFile = new JMenuItem("Load...");
+        var saveToFile = new JMenuItem("Save...");
 
         loadFromFile.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV files", "csv");
+            var fileChooser = new JFileChooser();
+            var filter = new FileNameExtensionFilter("CSV files", "csv");
             fileChooser.addChoosableFileFilter(filter);
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             fileChooser.setMultiSelectionEnabled(false);
             fileChooser.setFileFilter(filter);
 
-            int response = fileChooser.showDialog(frame, null);
+            var response = fileChooser.showOpenDialog(frame);
             if (response == JFileChooser.APPROVE_OPTION) {
                 try {
                     table.load(fileChooser.getSelectedFile().toURI());
@@ -74,7 +77,34 @@ public class Sudoku {
         });
 
         saveToFile.addActionListener(e -> {
-            // TODO respond to mouse click
+            var fileChooser = new JFileChooser();
+            var filter = new FileNameExtensionFilter("CSV files", "csv");
+            fileChooser.addChoosableFileFilter(filter);
+            fileChooser.setFileFilter(filter);
+            fileChooser.setMultiSelectionEnabled(false);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            var response = fileChooser.showSaveDialog(frame);
+            if (response == JFileChooser.APPROVE_OPTION) {
+                var selectedFile = fileChooser.getSelectedFile();
+                if (selectedFile.exists()) {
+                    var option = JOptionPane.showConfirmDialog(frame, "The selected file will be overwritten. Do you want to continue?",
+                        "Overwrite File?", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                    if (option != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+                }
+
+                TableModel o = table.getModel();
+                if (o instanceof SudokuTableModel) {
+                    var model = (SudokuTableModel) o;
+                    try {
+                        model.save(fileChooser.getSelectedFile());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(frame, "Unable to save the file: " + ex.getMessage(),
+                            "Unable to save", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
         });
 
         fileMenu.add(loadFromFile);

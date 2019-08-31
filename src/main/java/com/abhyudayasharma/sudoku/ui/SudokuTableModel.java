@@ -1,10 +1,17 @@
 package com.abhyudayasharma.sudoku.ui;
 
 import com.abhyudayasharma.sudoku.SudokuBoard;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.FilenameUtils;
 
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.TableModel;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,5 +82,20 @@ public class SudokuTableModel implements TableModel {
     @Override
     public void removeTableModelListener(TableModelListener tableModelListener) {
         listeners.remove(tableModelListener);
+    }
+
+    /**
+     * Save the current table model as a CSV
+     *
+     * @param file the file to be written to
+     * @throws IOException when unable to write the file
+     */
+    public void save(File file) throws IOException {
+        if (!FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("csv")) {
+            file = new File(file.toString() + ".csv");
+        }
+        try (CSVPrinter printer = new CSVPrinter(new BufferedWriter(new FileWriter(file)), CSVFormat.RFC4180)) {
+            printer.printRecords(data);
+        }
     }
 }

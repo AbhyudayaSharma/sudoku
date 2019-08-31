@@ -127,7 +127,7 @@ public class SudokuBoard {
     public List<List<String>> asList() {
         var ret = new ArrayList<List<String>>();
         for (int[] ints : matrix) {
-            ret.add(Arrays.stream(ints).mapToObj(String::valueOf).collect(Collectors.toList()));
+            ret.add(Arrays.stream(ints).mapToObj(x -> x == 0 ? "" : String.valueOf(x)).collect(Collectors.toList()));
         }
         return ret;
     }

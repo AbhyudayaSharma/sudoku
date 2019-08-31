@@ -11,7 +11,7 @@ import java.awt.Color;
 import java.net.URI;
 
 public class SudokuTable extends JTable {
-    private static final int CELL_SIZE = 50;
+    private static final int CELL_SIZE = 60;
 
     public SudokuTable() {
         super(new SudokuTableModel());
@@ -20,7 +20,7 @@ public class SudokuTable extends JTable {
         showVerticalLines = true;
         showHorizontalLines = true;
         autoResizeMode = JTable.AUTO_RESIZE_OFF;
-        rowHeight = 50;
+        rowHeight = CELL_SIZE;
         tableHeader = null;
 
         setColumnCellEditors();
