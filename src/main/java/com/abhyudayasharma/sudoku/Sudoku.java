@@ -1,19 +1,21 @@
 package com.abhyudayasharma.sudoku;
 
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
-import com.abhyudayasharma.sudoku.ui.SudokuTableModel;
 import net.miginfocom.swing.MigLayout;
 
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JSeparator;
 import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.TableModel;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 
 public class Sudoku {
@@ -35,8 +37,31 @@ public class Sudoku {
     private void initFrame() {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setLayout(new MigLayout());
-        frame.add(table, "grow");
+        frame.add(table, "grow, wrap, span");
         frame.setJMenuBar(createMenuBar());
+
+        JButton solveButton = new JButton("Solve");
+        solveButton.addActionListener(new TableActionListener() {
+            @Override
+            void actionPerformed() {
+                var isValid = table.getBoard().isValid();
+                if (!isValid) {
+                    JOptionPane.showMessageDialog(frame, "The sudoku grid you entered is not valid.",
+                        "Invalid Sudoku Grid", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+
+        JButton clearButton = new JButton("Clear");
+        clearButton.addActionListener(new TableActionListener() {
+            @Override
+            void actionPerformed() {
+                table.clear();
+            }
+        });
+
+        frame.add(solveButton);
+        frame.add(clearButton);
 
         frame.pack();
         frame.setVisible(true);
@@ -56,47 +81,51 @@ public class Sudoku {
 
         var loadFromFile = new JMenuItem("Load...");
         var saveToFile = new JMenuItem("Save...");
+        var exitMenuItem = new JMenuItem("Exit");
 
-        loadFromFile.addActionListener(e -> {
-            var fileChooser = new JFileChooser();
-            var filter = new FileNameExtensionFilter("CSV files", "csv");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fileChooser.setMultiSelectionEnabled(false);
-            fileChooser.setFileFilter(filter);
+        loadFromFile.addActionListener(new TableActionListener() {
+            @Override
+            void actionPerformed() {
+                var fileChooser = new JFileChooser();
+                var filter = new FileNameExtensionFilter("CSV files", "csv");
+                fileChooser.addChoosableFileFilter(filter);
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                fileChooser.setMultiSelectionEnabled(false);
+                fileChooser.setFileFilter(filter);
 
-            var response = fileChooser.showOpenDialog(frame);
-            if (response == JFileChooser.APPROVE_OPTION) {
-                try {
-                    table.load(fileChooser.getSelectedFile().toURI());
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(frame, "Error while trying to read the file:\n" + ex.getMessage(),
-                        "Error reading file", JOptionPane.ERROR_MESSAGE);
+                var response = fileChooser.showOpenDialog(frame);
+                if (response == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        table.load(fileChooser.getSelectedFile().toURI());
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(frame, "Error while trying to read the file:\n" + ex.getMessage(),
+                            "Error reading file", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         });
 
-        saveToFile.addActionListener(e -> {
-            var fileChooser = new JFileChooser();
-            var filter = new FileNameExtensionFilter("CSV files", "csv");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileFilter(filter);
-            fileChooser.setMultiSelectionEnabled(false);
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            var response = fileChooser.showSaveDialog(frame);
-            if (response == JFileChooser.APPROVE_OPTION) {
-                var selectedFile = fileChooser.getSelectedFile();
-                if (selectedFile.exists()) {
-                    var option = JOptionPane.showConfirmDialog(frame, "The selected file will be overwritten. Do you want to continue?",
-                        "Overwrite File?", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                    if (option != JOptionPane.YES_OPTION) {
-                        return;
+        saveToFile.addActionListener(new TableActionListener() {
+            @Override
+            void actionPerformed() {
+                var fileChooser = new JFileChooser();
+                var filter = new FileNameExtensionFilter("CSV files", "csv");
+                fileChooser.addChoosableFileFilter(filter);
+                fileChooser.setFileFilter(filter);
+                fileChooser.setMultiSelectionEnabled(false);
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                var response = fileChooser.showSaveDialog(frame);
+                if (response == JFileChooser.APPROVE_OPTION) {
+                    var selectedFile = fileChooser.getSelectedFile();
+                    if (selectedFile.exists()) {
+                        var option = JOptionPane.showConfirmDialog(frame, "The selected file will be overwritten. Do you want to continue?",
+                            "Overwrite File?", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                        if (option != JOptionPane.YES_OPTION) {
+                            return;
+                        }
                     }
-                }
 
-                TableModel o = table.getModel();
-                if (o instanceof SudokuTableModel) {
-                    var model = (SudokuTableModel) o;
+                    var model = table.getModel();
                     try {
                         model.save(fileChooser.getSelectedFile());
                     } catch (IOException ex) {
@@ -107,9 +136,27 @@ public class Sudoku {
             }
         });
 
+        exitMenuItem.addActionListener(e -> frame.dispose());
+        exitMenuItem.setMnemonic('x');
+
         fileMenu.add(loadFromFile);
         fileMenu.add(saveToFile);
+        fileMenu.add(new JSeparator());
+        fileMenu.add(exitMenuItem);
         menuBar.add(fileMenu);
         return menuBar;
+    }
+
+    private abstract class TableActionListener implements ActionListener {
+        @Override
+        public final void actionPerformed(ActionEvent actionEvent) {
+            var editor = table.getCellEditor();
+            if (editor != null) {
+                editor.stopCellEditing();
+            }
+            actionPerformed();
+        }
+
+        abstract void actionPerformed();
     }
 }

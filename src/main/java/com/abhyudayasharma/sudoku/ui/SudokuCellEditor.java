@@ -66,8 +66,11 @@ class SudokuCellEditor extends DefaultCellEditor {
                     }
 
                     if (!doClearTextField && (parsedInt > SudokuBoard.SIZE || parsedInt <= 0)) {
-                        JOptionPane.showMessageDialog(SudokuTextField.this.getTopLevelAncestor(),
-                            String.format("Please enter an integer between %d and %d", 1, SudokuBoard.SIZE));
+                        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
+                            SudokuTextField.this.getTopLevelAncestor(),
+                            String.format("Please enter an integer between %d and %d", 1, SudokuBoard.SIZE),
+                            "Invalid input", JOptionPane.WARNING_MESSAGE));
+
                         doClearTextField = true;
                     }
 

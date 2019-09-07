@@ -16,6 +16,11 @@ import java.net.URI;
 public class SudokuTable extends JTable {
     private static final int CELL_SIZE = 60;
 
+    @Override
+    public SudokuTableModel getModel() {
+        return (SudokuTableModel) super.getModel();
+    }
+
     public SudokuTable() {
         super(new SudokuTableModel());
         cellSelectionEnabled = rowSelectionAllowed = false;
@@ -65,6 +70,10 @@ public class SudokuTable extends JTable {
         setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, false));
     }
 
+    public SudokuBoard getBoard() {
+        return getModel().asBoard();
+    }
+
     private void setColumnCellEditors() {
         for (var it = columnModel.getColumns().asIterator(); it.hasNext(); ) {
             var column = it.next();
@@ -82,5 +91,10 @@ public class SudokuTable extends JTable {
     public void load(URI uri) throws Exception {
         setModel(new SudokuTableModel(uri));
         setColumnCellEditors();
+    }
+
+    public void clear() {
+        getModel().clear();
+        repaint();
     }
 }

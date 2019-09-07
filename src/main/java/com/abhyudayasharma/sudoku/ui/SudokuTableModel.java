@@ -17,10 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 public class SudokuTableModel implements TableModel {
     private final List<List<String>> data;
-    private final List<TableModelListener> listeners = new ArrayList<>();
+    private final List<TableModelListener> listeners = new Vector<>();
 
     SudokuTableModel() {
         data = new ArrayList<>();
@@ -62,12 +63,12 @@ public class SudokuTableModel implements TableModel {
     }
 
     @Override
-    public Object getValueAt(int row, int col) {
+    public synchronized Object getValueAt(int row, int col) {
         return data.get(row).get(col);
     }
 
     @Override
-    public void setValueAt(Object o, int row, int col) {
+    public synchronized void setValueAt(Object o, int row, int col) {
         if (!(o instanceof String)) {
             throw new IllegalArgumentException("The object passed should be a String");
         }
@@ -85,6 +86,10 @@ public class SudokuTableModel implements TableModel {
         listeners.remove(tableModelListener);
     }
 
+    synchronized SudokuBoard asBoard() {
+        return new SudokuBoard(data);
+    }
+
     /**
      * Save the current table model as a CSV
      *
@@ -99,5 +104,13 @@ public class SudokuTableModel implements TableModel {
             file, StandardCharsets.UTF_8)), CSVFormat.RFC4180)) {
             printer.printRecords(data);
         }
+    }
+
+    /**
+     * Clear all data from the model.
+     */
+    synchronized void clear() {
+        data.forEach(List::clear);
+        data.forEach(row -> row.addAll(Collections.nCopies(SudokuBoard.SIZE, "")));
     }
 }

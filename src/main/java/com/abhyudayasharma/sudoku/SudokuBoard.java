@@ -11,6 +11,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,8 +26,13 @@ public class SudokuBoard {
     private static final Logger LOGGER = LoggerFactory.getLogger(SudokuBoard.class);
     private final int[][] matrix;
 
-    SudokuBoard() {
-        this(new int[SIZE][SIZE]);
+    public SudokuBoard(List<List<String>> strings) {
+        matrix = new int[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                matrix[i][j] = parseValue(strings.get(i).get(j));
+            }
+        }
     }
 
     /**
@@ -41,6 +47,8 @@ public class SudokuBoard {
         }
 
         isInvalid = isInvalid || !Arrays.stream(matrix).mapToInt(row -> row.length).allMatch(length -> length == SIZE);
+        isInvalid = isInvalid || !Arrays.stream(matrix).allMatch(
+            row -> Arrays.stream(row).allMatch(x -> x >= 0 && x <= SIZE));
 
         if (isInvalid) {
             throw new IllegalArgumentException(String.format("The size of the matrix should be %d x %d", SIZE, SIZE));
@@ -92,29 +100,33 @@ public class SudokuBoard {
                     break;
                 }
 
-                int parsedInt;
-
-                if (!value.isBlank()) { // blank values should mean empty sudoku squares
-                    try {
-                        parsedInt = Integer.parseInt(value);
-                    } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException(
-                            String.format("The value \"%s\" cannot be parsed as an integer", value), e);
-                    }
-
-                    if (parsedInt < 1 || parsedInt > SIZE) {
-                        throw new IllegalArgumentException(
-                            String.format("The number \"%d\" is not valid as the value of a sudoku block", parsedInt));
-                    }
-
-                    matrix[(int) recordNumber][valueCount] = parsedInt;
-                }
+                matrix[(int) recordNumber][valueCount] = parseValue(value);
 
                 valueCount++;
             }
         }
 
         return new SudokuBoard(matrix);
+    }
+
+    private static int parseValue(String value) {
+        var parsedInt = 0;
+
+        if (!value.isBlank()) { // blank values should mean empty sudoku squares
+            try {
+                parsedInt = Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                    String.format("The value \"%s\" cannot be parsed as an integer", value), e);
+            }
+
+            if (parsedInt < 1 || parsedInt > SIZE) {
+                throw new IllegalArgumentException(
+                    String.format("The number \"%d\" is not valid as the value of a sudoku block", parsedInt));
+            }
+        }
+
+        return parsedInt;
     }
 
     /**
@@ -130,5 +142,74 @@ public class SudokuBoard {
             ret.add(Arrays.stream(ints).mapToObj(x -> x == 0 ? "" : String.valueOf(x)).collect(Collectors.toList()));
         }
         return ret;
+    }
+
+    /**
+     * Return true if the {@link SudokuBoard} is valid.
+     *
+     * @return true if the {@link SudokuBoard} is valid.
+     */
+    boolean isValid() {
+        final var rowInts = new HashSet<Integer>();
+        final var colInts = new HashSet<Integer>();
+
+        // check for for duplicates in every row and column
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                final var rowValue = matrix[i][j];
+                if ((rowValue != 0 && rowInts.contains(rowValue))) {
+                    return false;
+                } else {
+                    rowInts.add(rowValue);
+                }
+
+                final var colValue = matrix[j][i];
+                if (colValue != 0 && colInts.contains(colValue)) {
+                    return false;
+                } else {
+                    colInts.add(colValue);
+                }
+            }
+
+            rowInts.clear();
+            colInts.clear();
+        }
+
+        // now check the squares inside the big square.
+        // for an n * n sudoku, there are n small squares inside it.
+        // each sqrt(n) wide row contains sqrt(n) small squares.
+        final var intsInSquare = new HashSet<Integer>();
+        final var sqrt = (int) Math.rint(Math.sqrt(SIZE));
+
+        for (int i = 0; i < sqrt; i++) {
+            final var rowStart = sqrt * i;
+            final var rowEnd = rowStart + sqrt; // non-inclusive
+
+            for (int j = 0; j < sqrt; j++) {
+                final var colStart = sqrt * j;
+                final var colEnd = colStart + sqrt; // non-inclusive, again
+
+                // go over every element of this square
+                for (int k = rowStart; k < rowEnd; k++) {
+                    for (int l = colStart; l < colEnd; l++) {
+                        final var value = matrix[k][l];
+
+                        if (value == 0) {
+                            continue;
+                        }
+
+                        if (intsInSquare.contains(value)) {
+                            return false;
+                        } else {
+                            intsInSquare.add(value);
+                        }
+                    }
+                }
+
+                intsInSquare.clear();
+            }
+        }
+
+        return true;
     }
 }
