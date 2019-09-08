@@ -1,15 +1,18 @@
 package com.abhyudayasharma.sudoku.core;
 
 import com.abhyudayasharma.sudoku.SudokuBoard;
-import lombok.Getter;
 import lombok.val;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.abhyudayasharma.sudoku.SudokuBoard.SIZE;
 
@@ -22,9 +25,14 @@ public class SudokuSolver {
     private static final int sqrt = (int) Math.rint(Math.sqrt(SIZE));
 
     private final SudokuBoard initialBoard;
-    @Getter
     private final int[][] matrix;
-    private final Stack<Move> moves = new Stack<>();
+    private final Stack<AssignmentMove> moves = new Stack<>();
+
+    /**
+     * List of all moves that were made.
+     */
+    private final List<AbstractMove> moveList = new ArrayList<>();
+
     /**
      * Set of values contained by each row.
      */
@@ -39,6 +47,8 @@ public class SudokuSolver {
      */
     private final List<Set<Integer>> boxValues = new ArrayList<>(SIZE);
     private boolean isSolved = false;
+    private AtomicReference<Result> result = new AtomicReference<>(null);
+    private int backtrackCount = 0;
 
     public SudokuSolver(SudokuBoard board) {
         initialBoard = board;
@@ -79,7 +89,9 @@ public class SudokuSolver {
                         colValues.get(j).add(cellValue);
                         boxValues.get(boxIndex).add(cellValue);
                         wasAdded = true;
-                        moves.push(new Move(i, j, oldValue, cellValue));
+                        val move = new AssignmentMove(i, j, oldValue, cellValue);
+                        moves.push(move);
+                        moveList.add(move);
                         break;
                     }
                 }
@@ -91,6 +103,7 @@ public class SudokuSolver {
                     var row = previousCell.getLeft();
                     var col = previousCell.getRight();
                     val value = matrix[row][col];
+                    moveList.add(new BacktrackingMove(i, j, row, col));
 
                     // remove values because the incremented value would be set up in the next iteration
                     rowValues.get(row).remove(value);
@@ -103,6 +116,12 @@ public class SudokuSolver {
                 }
             }
         }
+
+        val resultBoard = new SudokuBoard(
+            Arrays.stream(matrix).map(row -> Arrays.stream(row).mapToObj(String::valueOf).collect(Collectors.toUnmodifiableList()))
+                .collect(Collectors.toUnmodifiableList()));
+
+        result.set(new Result(resultBoard, backtrackCount, moveList));
     }
 
     /**
@@ -112,6 +131,7 @@ public class SudokuSolver {
      * @return which row and column to iterate from in the next loop, respectively
      */
     private Pair<Integer, Integer> backtrack() {
+        backtrackCount++;
         var move = moves.pop();
 
         while (matrix[move.getRow()][move.getCol()] > SIZE) {
@@ -123,6 +143,7 @@ public class SudokuSolver {
             colValues.get(col).remove(value);
             boxValues.get(getBoxIndex(row, col)).remove(value);
             matrix[row][col] = 0;
+            moveList.add(new AssignmentMove(row, col, value, 0));
 
             move = moves.pop();
         }
@@ -154,5 +175,9 @@ public class SudokuSolver {
                 });
             }
         }
+    }
+
+    public Optional<Result> getResult() {
+        return Optional.ofNullable(result.get());
     }
 }

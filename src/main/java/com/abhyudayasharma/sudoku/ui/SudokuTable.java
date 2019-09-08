@@ -4,21 +4,27 @@ import com.abhyudayasharma.sudoku.Sudoku;
 import com.abhyudayasharma.sudoku.SudokuBoard;
 
 import javax.swing.BorderFactory;
-import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 import java.awt.Color;
-import java.awt.Component;
 import java.net.URI;
 
 public class SudokuTable extends JTable {
     private static final int CELL_SIZE = 60;
 
+    private static final DefaultTableCellRenderer defaultRenderer = new SudokuTableCellRenderer();
+
     @Override
     public SudokuTableModel getModel() {
         return (SudokuTableModel) super.getModel();
+    }
+
+    @Override
+    public TableCellEditor getCellEditor(int row, int column) {
+        return new SudokuCellEditor();
     }
 
     public SudokuTable() {
@@ -32,42 +38,13 @@ public class SudokuTable extends JTable {
         tableHeader = null;
 
         setColumnCellEditors();
-        var centeredRenderer = new DefaultTableCellRenderer() {
-            private final int sqrt = (int) Math.rint(Math.sqrt(SudokuBoard.SIZE));
-            private final Color borderColor = Color.BLACK;
-
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                                                           boolean hasFocus, int row, int column) {
-                final var component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                var border = BorderFactory.createEmptyBorder();
-
-                final var borderThickness = 3;
-                if (row % sqrt == sqrt - 1 && row != SudokuBoard.SIZE - 1) {
-                    border = BorderFactory.createCompoundBorder(border,
-                        BorderFactory.createMatteBorder(0, 0, borderThickness, 0, borderColor));
-                }
-
-                if (column % sqrt == sqrt - 1 && column != SudokuBoard.SIZE - 1) {
-                    border = BorderFactory.createCompoundBorder(border,
-                        BorderFactory.createMatteBorder(0, 0, 0, borderThickness, borderColor));
-                }
-
-                if (component instanceof JComponent) {
-                    ((JComponent) component).setBorder(border);
-                } else {
-                    throw new IllegalArgumentException("component should be a JComponent");
-                }
-
-                return component;
-            }
-        };
-        centeredRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        centeredRenderer.setBorder(BorderFactory.createLineBorder(Color.BLUE, 10));
-
-        setDefaultRenderer(Object.class, centeredRenderer);
         setFont(Sudoku.BOARD_FONT);
         setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, false));
+    }
+
+    @Override
+    public TableCellRenderer getCellRenderer(int row, int column) {
+        return defaultRenderer;
     }
 
     public SudokuBoard getBoard() {

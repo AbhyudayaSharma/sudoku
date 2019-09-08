@@ -31,6 +31,10 @@ public class SudokuTableModel implements TableModel {
         }
     }
 
+    public SudokuTableModel(SudokuBoard board) {
+        data = board.asList();
+    }
+
     SudokuTableModel(URI uri) throws Exception {
         SudokuBoard board = SudokuBoard.load(uri);
         data = board.asList();

@@ -1,7 +1,9 @@
 package com.abhyudayasharma.sudoku;
 
+import com.abhyudayasharma.sudoku.core.Result;
 import com.abhyudayasharma.sudoku.core.SudokuSolver;
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
+import com.abhyudayasharma.sudoku.ui.SudokuTableModel;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.JButton;
@@ -52,18 +54,18 @@ public class Sudoku {
             void actionPerformed() {
                 var board = table.getBoard();
                 var solver = new SudokuSolver(board);
-                var sudokuSolver = new SwingWorker<int[][], Integer>() {
+                var sudokuSolver = new SwingWorker<Result, Integer>() {
                     @Override
-                    protected int[][] doInBackground() {
+                    protected Result doInBackground() {
                         solver.solve();
-                        return solver.getMatrix();
+                        return solver.getResult().orElseThrow(() -> new IllegalStateException("Unable to get the result"));
                     }
 
                     @Override
                     protected void done() {
                         try {
-                            // FIXME
-                            int[][] newBoard = get();
+                            final var result = get();
+                            table.setModel(new SudokuTableModel(result.getBoard()));
                             solvedLabel.setText("Solved!!!");
                         } catch (Exception e) {
                             JOptionPane.showMessageDialog(frame, "Unable to solve: " + e.getCause().getMessage(),
