@@ -1,10 +1,9 @@
 package com.abhyudayasharma.sudoku;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -18,14 +17,24 @@ import java.util.stream.Collectors;
 
 /**
  * A 9x9 matrix that can be used as a Sudoku board.
+ * <p>
+ * Internally, {@code 0} values are considered empty values. Values less than {@code 0} or greater than
+ * {@link SudokuBoard#SIZE} are not valid.
  *
  * @author Abhyudaya Sharma
  */
+@Slf4j
 public class SudokuBoard {
     public static final int SIZE = 9;
-    private static final Logger LOGGER = LoggerFactory.getLogger(SudokuBoard.class);
     private final int[][] matrix;
 
+    /**
+     * Creates a sudoku board from a list of list os {@link String}s.
+     * Empty strings are considered as empty sudoku cells.
+     *
+     * @param strings raw strings
+     * @throws IllegalArgumentException if any of the {@link String} values is not valid in the Sudoku.
+     */
     public SudokuBoard(List<List<String>> strings) {
         matrix = new int[SIZE][SIZE];
         for (int i = 0; i < SIZE; i++) {
@@ -57,19 +66,6 @@ public class SudokuBoard {
         this.matrix = matrix;
     }
 
-    public Optional<Integer> get(int row, int col) {
-        if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) {
-            throw new IndexOutOfBoundsException(String.format("Matrix Index (%d, %d) is out of bounds", row, col));
-        }
-
-        var value = matrix[row][col];
-        if (value == 0) {
-            return Optional.empty();
-        } else {
-            return Optional.of(value);
-        }
-    }
-
     /**
      * Creates a {@link SudokuBoard} from the CSV file.
      *
@@ -87,7 +83,7 @@ public class SudokuBoard {
         for (CSVRecord record : records) {
             long recordNumber = record.getRecordNumber() - 1; // make the record number zero indexed
             if (recordNumber >= SIZE) {
-                LOGGER.warn("The CSV file contains {} records, will consider only the first {} records.",
+                log.warn("The CSV file contains {} records, will consider only the first {} records.",
                     records.size(), SIZE);
                 break;
             }
@@ -95,7 +91,7 @@ public class SudokuBoard {
             int valueCount = 0;
             for (String value : record) {
                 if (valueCount >= SIZE) {
-                    LOGGER.warn("The record number {} contains {} values, will consider only the first {} values.",
+                    log.warn("The record number {} contains {} values, will consider only the first {} values.",
                         recordNumber, record.size(), SIZE);
                     break;
                 }
@@ -109,6 +105,13 @@ public class SudokuBoard {
         return new SudokuBoard(matrix);
     }
 
+    /**
+     * Parse a valid sudoku integer from the given string value.
+     *
+     * @param value the string value to be parsed into a valid sudoku integer.
+     * @return parsed integer value valid for the Sudoku
+     * @throws IllegalArgumentException when string is invalid for the value of a sudoku cell
+     */
     private static int parseValue(String value) {
         var parsedInt = 0;
 
@@ -127,6 +130,27 @@ public class SudokuBoard {
         }
 
         return parsedInt;
+    }
+
+    /**
+     * Return the value at a particular row or a column.
+     *
+     * @param row the row index
+     * @param col the column index
+     * @return {@link Optional#empty()} if no element is present at that cell.
+     * @throws IndexOutOfBoundsException if the row and column indices are out of bounds.
+     */
+    public Optional<Integer> get(int row, int col) {
+        if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) {
+            throw new IndexOutOfBoundsException(String.format("Matrix Index (%d, %d) is out of bounds", row, col));
+        }
+
+        var value = matrix[row][col];
+        if (value == 0) {
+            return Optional.empty();
+        } else {
+            return Optional.of(value);
+        }
     }
 
     /**
@@ -149,7 +173,7 @@ public class SudokuBoard {
      *
      * @return true if the {@link SudokuBoard} is valid.
      */
-    boolean isValid() {
+    public boolean isValid() {
         final var rowInts = new HashSet<Integer>();
         final var colInts = new HashSet<Integer>();
 
@@ -211,5 +235,14 @@ public class SudokuBoard {
         }
 
         return true;
+    }
+
+    /**
+     * Return a deep-copy of the internal matrix used by the board.
+     *
+     * @return copy of the internal matrix used by this {@link SudokuBoard}
+     */
+    public int[][] asMatrix() {
+        return Arrays.stream(matrix).map(int[]::clone).toArray(int[][]::new);
     }
 }

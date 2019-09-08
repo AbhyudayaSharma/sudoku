@@ -1,22 +1,26 @@
 package com.abhyudayasharma.sudoku;
 
+import com.abhyudayasharma.sudoku.core.SudokuSolver;
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
+import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.List;
 
 public class Sudoku {
     /**
@@ -41,18 +45,45 @@ public class Sudoku {
         frame.setJMenuBar(createMenuBar());
 
         JButton solveButton = new JButton("Solve");
+        JLabel solvedLabel = new JLabel("Not solved yet.");
+
         solveButton.addActionListener(new TableActionListener() {
             @Override
             void actionPerformed() {
-                var isValid = table.getBoard().isValid();
-                if (!isValid) {
-                    JOptionPane.showMessageDialog(frame, "The sudoku grid you entered is not valid.",
-                        "Invalid Sudoku Grid", JOptionPane.WARNING_MESSAGE);
-                }
+                var board = table.getBoard();
+                var solver = new SudokuSolver(board);
+                var sudokuSolver = new SwingWorker<int[][], Integer>() {
+                    @Override
+                    protected int[][] doInBackground() {
+                        solver.solve();
+                        return solver.getMatrix();
+                    }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            // FIXME
+                            int[][] newBoard = get();
+                            solvedLabel.setText("Solved!!!");
+                        } catch (Exception e) {
+                            JOptionPane.showMessageDialog(frame, "Unable to solve: " + e.getCause().getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                            throw new IllegalArgumentException(e);
+                        }
+                    }
+
+                    @Override
+                    protected void process(List<Integer> chunks) {
+                        // FIXME: 9/7/2019
+                        super.process(chunks);
+                    }
+                };
+
+                sudokuSolver.execute();
             }
         });
 
-        JButton clearButton = new JButton("Clear");
+        var clearButton = new JButton("Clear");
         clearButton.addActionListener(new TableActionListener() {
             @Override
             void actionPerformed() {
@@ -62,6 +93,7 @@ public class Sudoku {
 
         frame.add(solveButton);
         frame.add(clearButton);
+        frame.add(solvedLabel);
 
         frame.pack();
         frame.setVisible(true);
