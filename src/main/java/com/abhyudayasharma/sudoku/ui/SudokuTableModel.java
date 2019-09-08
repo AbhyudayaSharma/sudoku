@@ -1,6 +1,8 @@
 package com.abhyudayasharma.sudoku.ui;
 
 import com.abhyudayasharma.sudoku.SudokuBoard;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FilenameUtils;
@@ -22,6 +24,10 @@ import java.util.Vector;
 public class SudokuTableModel implements TableModel {
     private final List<List<String>> data;
     private final List<TableModelListener> listeners = new Vector<>();
+
+    @Getter
+    @Setter
+    private boolean isEditable = true;
 
     SudokuTableModel() {
         data = new ArrayList<>();
@@ -63,7 +69,7 @@ public class SudokuTableModel implements TableModel {
 
     @Override
     public boolean isCellEditable(int i, int i1) {
-        return true;
+        return isEditable;
     }
 
     @Override

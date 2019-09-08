@@ -32,6 +32,8 @@ public class Sudoku {
 
     private final JFrame frame = new JFrame("Sudoku");
     private final SudokuTable table = new SudokuTable();
+    private final JButton solveButton = new JButton("Solve");
+    private final JLabel solvedLabel = new JLabel("Ready...");
 
     void start() {
         initFrame();
@@ -46,14 +48,15 @@ public class Sudoku {
         frame.add(table, "grow, wrap, span");
         frame.setJMenuBar(createMenuBar());
 
-        JButton solveButton = new JButton("Solve");
-        JLabel solvedLabel = new JLabel("Not solved yet.");
-
         solveButton.addActionListener(new TableActionListener() {
             @Override
             void actionPerformed() {
                 var board = table.getBoard();
                 var solver = new SudokuSolver(board);
+                solveButton.setEnabled(false);
+                solvedLabel.setText("Solving...");
+                table.getModel().setEditable(false);
+
                 var sudokuSolver = new SwingWorker<Result, Integer>() {
                     @Override
                     protected Result doInBackground() {
@@ -65,8 +68,10 @@ public class Sudoku {
                     protected void done() {
                         try {
                             final var result = get();
-                            table.setModel(new SudokuTableModel(result.getBoard()));
-                            solvedLabel.setText("Solved!!!");
+                            final var newModel = new SudokuTableModel(result.getBoard());
+                            newModel.setEditable(false);
+                            table.setModel(newModel);
+                            solvedLabel.setText("Done.");
                         } catch (Exception e) {
                             JOptionPane.showMessageDialog(frame, "Unable to solve: " + e.getCause().getMessage(),
                                 "Error", JOptionPane.ERROR_MESSAGE);
@@ -90,6 +95,8 @@ public class Sudoku {
             @Override
             void actionPerformed() {
                 table.clear();
+                table.getModel().setEditable(true);
+                solveButton.setEnabled(true);
             }
         });
 
@@ -136,6 +143,10 @@ public class Sudoku {
                             "Error reading file", JOptionPane.ERROR_MESSAGE);
                     }
                 }
+
+                table.getModel().setEditable(true);
+                solveButton.setEnabled(true);
+                solvedLabel.setText("Ready...");
             }
         });
 
