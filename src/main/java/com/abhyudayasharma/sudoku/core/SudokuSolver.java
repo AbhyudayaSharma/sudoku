@@ -6,6 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EmptyStackException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -70,51 +71,68 @@ public class SudokuSolver {
         }
 
         initSets();
+        try {
+            for (int i = 0; i < matrix.length; i++) {
+                for (int j = 0; j < matrix.length; j++) {
+                    if (initialBoard.get(i, j).isPresent()) {
+                        continue;
+                    }
 
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < matrix.length; j++) {
-                if (initialBoard.get(i, j).isPresent()) {
-                    continue;
-                }
+                    boolean wasAdded = false;
+                    val oldValue = matrix[i][j];
+                    val boxIndex = getBoxIndex(i, j);
 
-                boolean wasAdded = false;
-                val oldValue = matrix[i][j];
-                val boxIndex = getBoxIndex(i, j);
+                    for (var cellValue = oldValue + 1; cellValue <= SIZE; cellValue++) {
+                        if (!(rowValues.get(i).contains(cellValue) || colValues.get(j).contains(cellValue) ||
+                                  boxValues.get(boxIndex).contains(cellValue))) {
+                            matrix[i][j] = cellValue;
+                            rowValues.get(i).add(cellValue);
+                            colValues.get(j).add(cellValue);
+                            boxValues.get(boxIndex).add(cellValue);
+                            wasAdded = true;
+                            val move = new AssignmentMove(i, j, oldValue, cellValue);
+                            moves.push(move);
+                            moveList.add(move);
+                            break;
+                        }
+                    }
 
-                for (var cellValue = oldValue + 1; cellValue <= SIZE; cellValue++) {
-                    if (!(rowValues.get(i).contains(cellValue) || colValues.get(j).contains(cellValue) ||
-                              boxValues.get(boxIndex).contains(cellValue))) {
-                        matrix[i][j] = cellValue;
-                        rowValues.get(i).add(cellValue);
-                        colValues.get(j).add(cellValue);
-                        boxValues.get(boxIndex).add(cellValue);
-                        wasAdded = true;
-                        val move = new AssignmentMove(i, j, oldValue, cellValue);
-                        moves.push(move);
-                        moveList.add(move);
-                        break;
+                    // go to the previous cell and try to increment the value
+                    if (!wasAdded) {
+                        matrix[i][j] = 0;
+                        val previousCell = backtrack();
+                        var row = previousCell.getLeft();
+                        var col = previousCell.getRight();
+                        val value = matrix[row][col];
+                        moveList.add(new BacktrackingMove(i, j, row, col));
+
+                        // remove values because the incremented value would be set up in the next iteration
+                        rowValues.get(row).remove(value);
+                        colValues.get(col).remove(value);
+                        boxValues.get(getBoxIndex(row, col)).remove(value);
+
+                        // set up i and j to become equal to row and col for the next iteration
+                        i = row;
+                        j = col - 1;
                     }
                 }
-
-                // go to the previous cell and try to increment the value
-                if (!wasAdded) {
-                    matrix[i][j] = 0;
-                    val previousCell = backtrack();
-                    var row = previousCell.getLeft();
-                    var col = previousCell.getRight();
-                    val value = matrix[row][col];
-                    moveList.add(new BacktrackingMove(i, j, row, col));
-
-                    // remove values because the incremented value would be set up in the next iteration
-                    rowValues.get(row).remove(value);
-                    colValues.get(col).remove(value);
-                    boxValues.get(getBoxIndex(row, col)).remove(value);
-
-                    // set up i and j to become equal to row and col for the next iteration
-                    i = row;
-                    j = col - 1;
-                }
             }
+        } catch (EmptyStackException e) {
+            // moves stack becomes empty when there is no possible value to be put in the puzzle
+            // and throws the EmptyStackException. This means that the puzzle is invalid.
+            // for example, consider the puzzle
+            //      1 2 3 4 5 6 7 8 X
+            //      X X X X X X X X 2
+            //      X X X X X X X X 3
+            //      X X X X X X X X 4
+            //      X X X X X X X X 5
+            //      X X X X X X X X 6
+            //      X X X X X X X X 7
+            //      X X X X X X X X 8
+            //      X X X X X X X X 9
+            // taken from https://boards.straightdope.com/sdmb/archive/index.php/t-458783.html which
+            // is valid but not a correct sudoku puzzle.
+            throw new IllegalArgumentException("The entered pattern is not a valid sudoku puzzle.", e);
         }
 
         val resultBoard = new SudokuBoard(

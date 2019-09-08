@@ -4,6 +4,7 @@ import com.abhyudayasharma.sudoku.core.Result;
 import com.abhyudayasharma.sudoku.core.SudokuSolver;
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
 import com.abhyudayasharma.sudoku.ui.SudokuTableModel;
+import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.JButton;
@@ -24,6 +25,7 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 public class Sudoku {
     /**
      * The {@link Font} that must be used for the sudoku board.
@@ -75,7 +77,9 @@ public class Sudoku {
                         } catch (Exception e) {
                             JOptionPane.showMessageDialog(frame, "Unable to solve: " + e.getCause().getMessage(),
                                 "Error", JOptionPane.ERROR_MESSAGE);
-                            throw new IllegalArgumentException(e);
+                            table.getModel().setEditable(true);
+                            solveButton.setEnabled(true);
+                            solvedLabel.setText("Ready");
                         }
                     }
 

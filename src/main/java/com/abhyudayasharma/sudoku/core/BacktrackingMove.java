@@ -1,9 +1,11 @@
 package com.abhyudayasharma.sudoku.core;
 
 import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 @Getter
+@ToString
 @FieldDefaults(makeFinal = true)
 class BacktrackingMove extends AbstractMove {
     private final int fromRow;
