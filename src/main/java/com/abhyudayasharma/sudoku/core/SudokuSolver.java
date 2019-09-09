@@ -1,18 +1,43 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Abhyudaya Sharma
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.abhyudayasharma.sudoku.core;
 
 import com.abhyudayasharma.sudoku.SudokuBoard;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.tuple.Pair;
 
+import javax.swing.SwingWorker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.abhyudayasharma.sudoku.SudokuBoard.SIZE;
@@ -22,17 +47,24 @@ import static com.abhyudayasharma.sudoku.SudokuBoard.SIZE;
  *
  * @author Abhyudaya Sharma
  */
-public class SudokuSolver {
+@Slf4j
+public abstract class SudokuSolver extends SwingWorker<Result, AbstractMove> {
     private static final int sqrt = (int) Math.rint(Math.sqrt(SIZE));
+
+    private final int delay;
+
+    protected SudokuSolver(SudokuBoard board, int delay) {
+        initialBoard = board;
+        matrix = initialBoard.asMatrix();
+        if (delay < 0) {
+            throw new IllegalArgumentException("Delay should be greater than 0");
+        }
+        this.delay = delay;
+    }
 
     private final SudokuBoard initialBoard;
     private final int[][] matrix;
     private final Stack<AssignmentMove> moves = new Stack<>();
-
-    /**
-     * List of all moves that were made.
-     */
-    private final List<AbstractMove> moveList = new ArrayList<>();
 
     /**
      * Set of values contained by each row.
@@ -48,20 +80,20 @@ public class SudokuSolver {
      */
     private final List<Set<Integer>> boxValues = new ArrayList<>(SIZE);
     private boolean isSolved = false;
-    private AtomicReference<Result> result = new AtomicReference<>(null);
     private int backtrackCount = 0;
 
-    public SudokuSolver(SudokuBoard board) {
-        initialBoard = board;
-        matrix = initialBoard.asMatrix();
-    }
+    @Override
+    protected abstract void done();
+
+    @Override
+    protected abstract void process(List<AbstractMove> chunks);
 
     /**
      * Solves a {@link SudokuBoard} and returns a new fully solved one.
      */
-    public void solve() {
+    private Result solve() throws ExecutionException, InterruptedException {
         if (isSolved) {
-            return;
+            return get();
         }
 
         isSolved = true;
@@ -92,7 +124,9 @@ public class SudokuSolver {
                             wasAdded = true;
                             val move = new AssignmentMove(i, j, oldValue, cellValue);
                             moves.push(move);
-                            moveList.add(move);
+                            publish(move);
+                            // make it slower
+                            Thread.sleep(delay);
                             break;
                         }
                     }
@@ -104,7 +138,7 @@ public class SudokuSolver {
                         var row = previousCell.getLeft();
                         var col = previousCell.getRight();
                         val value = matrix[row][col];
-                        moveList.add(new BacktrackingMove(i, j, row, col));
+                        publish(new BacktrackingMove(i, j, row, col));
 
                         // remove values because the incremented value would be set up in the next iteration
                         rowValues.get(row).remove(value);
@@ -139,7 +173,7 @@ public class SudokuSolver {
             Arrays.stream(matrix).map(row -> Arrays.stream(row).mapToObj(String::valueOf).collect(Collectors.toUnmodifiableList()))
                 .collect(Collectors.toUnmodifiableList()));
 
-        result.set(new Result(resultBoard, backtrackCount, moveList));
+        return new Result(resultBoard, backtrackCount);
     }
 
     /**
@@ -161,7 +195,7 @@ public class SudokuSolver {
             colValues.get(col).remove(value);
             boxValues.get(getBoxIndex(row, col)).remove(value);
             matrix[row][col] = 0;
-            moveList.add(new AssignmentMove(row, col, value, 0));
+            publish(new AssignmentMove(row, col, value, 0));
 
             move = moves.pop();
         }
@@ -195,7 +229,8 @@ public class SudokuSolver {
         }
     }
 
-    public Optional<Result> getResult() {
-        return Optional.ofNullable(result.get());
+    @Override
+    protected Result doInBackground() throws Exception {
+        return solve();
     }
 }

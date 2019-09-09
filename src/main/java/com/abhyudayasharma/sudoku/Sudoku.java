@@ -1,6 +1,31 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Abhyudaya Sharma
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.abhyudayasharma.sudoku;
 
-import com.abhyudayasharma.sudoku.core.Result;
+import com.abhyudayasharma.sudoku.core.AbstractMove;
+import com.abhyudayasharma.sudoku.core.AssignmentMove;
 import com.abhyudayasharma.sudoku.core.SudokuSolver;
 import com.abhyudayasharma.sudoku.ui.SudokuTable;
 import com.abhyudayasharma.sudoku.ui.SudokuTableModel;
@@ -16,7 +41,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
-import javax.swing.SwingWorker;
+import javax.swing.JSlider;
 import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.Font;
@@ -24,7 +49,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
+/**
+ * A Sudoku puzzle emulation which can solve all valid Sudoku puzzles.
+ *
+ * @author Abhyudaya Sharma - 1710110019
+ */
 @Slf4j
 public class Sudoku {
     /**
@@ -35,7 +66,10 @@ public class Sudoku {
     private final JFrame frame = new JFrame("Sudoku");
     private final SudokuTable table = new SudokuTable();
     private final JButton solveButton = new JButton("Solve");
+    private final JButton clearButton = new JButton("Clear");
+    private final JButton stopButton = new JButton("Stop");
     private final JLabel solvedLabel = new JLabel("Ready...");
+    private SudokuSolver solver = null;
 
     void start() {
         initFrame();
@@ -50,22 +84,17 @@ public class Sudoku {
         frame.add(table, "grow, wrap, span");
         frame.setJMenuBar(createMenuBar());
 
+        var slider = new JSlider(0, 10);
+        slider.setSize(slider.getPreferredSize());
+        stopButton.setEnabled(false);
+
         solveButton.addActionListener(new TableActionListener() {
             @Override
             void actionPerformed() {
                 var board = table.getBoard();
-                var solver = new SudokuSolver(board);
-                solveButton.setEnabled(false);
-                solvedLabel.setText("Solving...");
-                table.getModel().setEditable(false);
-
-                var sudokuSolver = new SwingWorker<Result, Integer>() {
-                    @Override
-                    protected Result doInBackground() {
-                        solver.solve();
-                        return solver.getResult().orElseThrow(() -> new IllegalStateException("Unable to get the result"));
-                    }
-
+                stopButton.setEnabled(true);
+                slider.setEnabled(false);
+                solver = new SudokuSolver(board, 10 - slider.getValue()) {
                     @Override
                     protected void done() {
                         try {
@@ -73,39 +102,66 @@ public class Sudoku {
                             final var newModel = new SudokuTableModel(result.getBoard());
                             newModel.setEditable(false);
                             table.setModel(newModel);
-                            solvedLabel.setText("Done.");
+                            solvedLabel.setText("Solved");
+                        } catch (CancellationException e) {
+                            clearButton.doClick();
                         } catch (Exception e) {
                             JOptionPane.showMessageDialog(frame, "Unable to solve: " + e.getCause().getMessage(),
                                 "Error", JOptionPane.ERROR_MESSAGE);
                             table.getModel().setEditable(true);
                             solveButton.setEnabled(true);
-                            solvedLabel.setText("Ready");
+                            slider.setEnabled(true);
+                            solvedLabel.setText("Ready...");
+                        } finally {
+                            clearButton.setEnabled(true);
+                            stopButton.setEnabled(false);
                         }
                     }
 
                     @Override
-                    protected void process(List<Integer> chunks) {
-                        // FIXME: 9/7/2019
-                        super.process(chunks);
+                    protected void process(List<AbstractMove> moves) {
+                        for (var move : moves) {
+                            if (move instanceof AssignmentMove) {
+                                var assignmentMove = (AssignmentMove) move;
+                                var newValue = assignmentMove.getNewValue();
+                                var strValue = newValue == 0 ? "" : String.valueOf(newValue);
+                                table.getModel().setValueAt(strValue, assignmentMove.getRow(), assignmentMove.getCol());
+                            }
+                        }
                     }
                 };
 
-                sudokuSolver.execute();
+                clearButton.setEnabled(false);
+                solveButton.setEnabled(false);
+                solvedLabel.setText("Solving...");
+                table.getModel().setEditable(false);
+                solver.execute();
             }
         });
 
-        var clearButton = new JButton("Clear");
         clearButton.addActionListener(new TableActionListener() {
             @Override
             void actionPerformed() {
                 table.clear();
+                slider.setEnabled(true);
                 table.getModel().setEditable(true);
                 solveButton.setEnabled(true);
+                solvedLabel.setText("Ready...");
             }
         });
 
+        stopButton.addActionListener(e -> {
+            if (solver != null) {
+                solver.cancel(true);
+                solvedLabel.setText("Stopped");
+            }
+        });
+
+        frame.add(new JLabel("Solving Speed:"));
+        frame.add(slider);
         frame.add(solveButton);
         frame.add(clearButton);
+        frame.add(stopButton);
         frame.add(solvedLabel);
 
         frame.pack();
@@ -150,7 +206,6 @@ public class Sudoku {
 
                 table.getModel().setEditable(true);
                 solveButton.setEnabled(true);
-                solvedLabel.setText("Ready...");
             }
         });
 
